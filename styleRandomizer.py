@@ -13,7 +13,7 @@ import shutil
 #sys.path.append("../anki")
 from anki.storage import Collection # OK
 
-User = "Benutzer 2"
+User = "Benutzer 1"
 PROFILE_HOME = "/Users/Phillip/AppData/Roaming/Anki2/"+User
 GAN_OUTPUT_PATH = "/Users/Phillip/Google Drive/python/Projects/AnkiAddons/randomFonts/zi2zi/output_dir/"
 DECK_NAME = "HSK1to6+" #"HSK1to6::deck"
@@ -23,6 +23,8 @@ DIRNAME = os.path.dirname(os.path.abspath(__file__))
 JSON_DIR = os.path.join(DIRNAME, 'zi2zi','charset','cjk.json')
 GAN_DIR = os.path.join(DIRNAME, 'zi2zi')
 FNAME_END = "gan_generated.png"
+
+font_list = [1,2,3,4,5,6,7,8,9,11,12,13,14,17,18,19,21,22,23,24,25,26,27]
 
 template = "<img src='{{Front}}"+"_"+DECK_NAME+"_"+FNAME_END+"'>"
 
@@ -42,7 +44,7 @@ for cid in col.findCards(DECK):
     ucode_list = [functions.char_to_unicode(ch) for ch in char_list]
     print(ucode_list)
     functions.char_to_json(ucode_list, JSON_DIR)
-    font_list = [1,2,3,4,5,6,7,8,9,11,12,13,14,17,18,19,21,22,23,24,25,26,27]
+    
     r_str = str(random.choice(font_list))
     print("random font: ", r_str)
     subprocess.call(["python", "-W", "ignore", "run.py", "--font_ids", r_str, \
