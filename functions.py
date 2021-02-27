@@ -1,5 +1,6 @@
 import json
 import codecs
+import random
 
 def char_to_unicode(char):
     text = char.encode('unicode-escape')
@@ -19,6 +20,12 @@ def read_json(path):
         text = json.load(json_file)
         print(text['CN'][1])
     return 
+
+def random_color():
+    r1 = random.randint(0, 255)
+    r2 = random.randint(0, 255)
+    r3 = random.randint(0, 255)
+    return (r1, r2, r3)
 
 if __name__ == "__main__":
     ucode = char_to_unicode("我我")

@@ -12,7 +12,7 @@ import glob
 import shutil
 import codecs
 from PIL import Image
-import numpy
+import numpy as np
 
 #sys.path.append("../anki")
 from anki.storage import Collection # OK
@@ -46,7 +46,7 @@ cpath = os.path.join(PROFILE_HOME, "collection.anki2")
 col = Collection(cpath, log=True) # Entry point to the API
 did = col.decks.id(DECK_NAME)
 col.decks.select(did)
-#deck = col.decks.byName(DECK_NAME)
+#black = (red == 0) & (blue == 0) & (green == 0)
 
 def get_cards(col, n = 20):
     cards = []
@@ -131,7 +131,7 @@ def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
                             "--shuffle=0"], cwd=GAN_DIR)
 
     for char in char_arr:
-        print(char)
+        random_colors = functions.random_color()
         chars, ids = char
         full_char = ""
         images = []
@@ -146,6 +146,12 @@ def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
             print(image.size)
             print(width)
             image = image.crop((0, 0, width//2, height))
+            image = image.convert("RGBA")
+            im_data = np.array(image)
+            red, green, blue, alpha = im_data.T
+            black = (red < 60) & (blue < 60) & (green < 60)
+            im_data[..., :-1][black.T] = random_colors
+            image = Image.fromarray(im_data)
             images.append(image)
         print(full_char)
         if len(chars) >= 2:
@@ -157,6 +163,15 @@ def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
         print(DB_PATH)
         img.save(DB_PATH)
 
+def clear_folders():
+    files = glob.glob(GAN_DIR+'/hanzi_dir/*')
+    for f in files:
+        os.remove(f)
+
+    files = glob.glob(GAN_DIR+'/output_dir/*')
+    for f in files:
+        os.remove(f)
+
 def randomize_deck():
     char_arr = get_characters(col, DECK, FIELD_NO)
     ucode_arr = chars_to_json(char_arr)
@@ -165,13 +180,7 @@ def randomize_deck():
     print("no_chars: ", no_chars)
     save_to_db(char_arr, no_chars, r_str, GAN_DIR, GAN_OUTPUT_PATH)
 
-    files = glob.glob(GAN_DIR+'/hanzi_dir/*')
-    for f in files:
-        os.remove(f)
-
-    files = glob.glob(GAN_DIR+'/output_dir/*')
-    for f in files:
-        os.remove(f)
+    clear_folders()
 
 def randomize_next_cards(n, interp_bool):
     while True:
@@ -185,13 +194,7 @@ def randomize_next_cards(n, interp_bool):
         print("no_chars: ", no_chars)
         save_to_db(char_arr, no_chars, r_str, interp_bool, GAN_DIR, GAN_OUTPUT_PATH)
 
-        files = glob.glob(GAN_DIR+'/hanzi_dir/*')
-        for f in files:
-            os.remove(f)
-
-        files = glob.glob(GAN_DIR+'/output_dir/*')
-        for f in files:
-            os.remove(f)
+        clear_folders()
         
         if not col.sched.getCard(): break
 
@@ -203,16 +206,10 @@ def randomize_next_cards_noGAN(n):
         no_chars = len(ucode_arr)
         print("no_chars: ", no_chars)
         font_str = str(random.choice(fonts))
-        input(font_str)
+        #input(font_str)
         save_to_db_noGAN(char_arr, no_chars, font_str, GAN_DIR, GAN_HANZI_PATH)
 
-        files = glob.glob(GAN_DIR+'/hanzi_dir/*')
-        for f in files:
-            os.remove(f)
-
-        files = glob.glob(GAN_DIR+'/output_dir/*')
-        for f in files:
-            os.remove(f)
+        clear_folders()
         
         if not col.sched.getCard(): break
 
