@@ -2,4 +2,5 @@
 "decks": ["HSK1to6+", "Radicals"],
 "field_no": [0, 0],
 "random_color": true,
-"interpolate": true}
+"interpolate": true,
+"AI_generated": true}
