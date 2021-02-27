@@ -1,6 +1,8 @@
 import json
 import codecs
 import random
+from PIL import Image
+import numpy as np
 
 def char_to_unicode(char):
     text = char.encode('unicode-escape')
@@ -23,9 +25,20 @@ def read_json(path):
 
 def random_color():
     r1 = random.randint(0, 255)
-    r2 = random.randint(0, 255)
-    r3 = random.randint(0, 255)
+    r2 = random.randint(0, 200)
+    r3 = random.randint(0, 200)
     return (r1, r2, r3)
+
+def change_color(image, random_colors):
+    image = image.convert("RGBA")
+    im_data = np.array(image)
+    red, green, blue, alpha = im_data.T
+    max_val = 200
+    black = (red < max_val) & (blue < max_val) & (green < max_val)
+    im_data[..., :-1][black.T] = random_colors
+    image = Image.fromarray(im_data)
+    return image
+
 
 if __name__ == "__main__":
     ucode = char_to_unicode("我我")

@@ -49,12 +49,15 @@ col.decks.select(did)
 #black = (red == 0) & (blue == 0) & (green == 0)
 
 def get_cards(col, n = 20):
+    global flag
     cards = []
     counter = 0
     
     while True:
         card = col.sched.getCard()
-        if card == None or counter > n: break
+        if card == None or counter > n: 
+            flag = False
+            break
         cards.append(card)
         counter += 1
         #cards.append(col.getCard(cid))
@@ -94,24 +97,22 @@ def get_concat_h(im1, im2):
 
 def save_to_db(char_arr, no_chars, r_str, interp_bool, gan_path, gan_output_path):
     # Clear all files in Hanzi dir
-    files = glob.glob(GAN_DIR+'/hanzi_dir/*')
-    for f in files:
-        os.remove(f)
+    clear_folders()
     subprocess.call(["python", "-W", "ignore", "run.py", "--font_ids", r_str, \
                         "--sample_count", str(no_chars), "--interpolate", str(interp_bool)], cwd=GAN_DIR)
 
     for char in char_arr:
-        print(char)
+        random_colors = functions.random_color()
         chars, ids = char
         full_char = ""
         images = []
-        #get_concat_h(im1, im1)
         for i in range(len(chars)):
             ch = chars[i]
             char_no = str(ids[i]).zfill(4)
             full_char += ch
-            images.append(Image.open(gan_output_path+"inferred_"+char_no +".png"))
-        print(full_char)
+            image = Image.open(gan_output_path+"inferred_"+char_no +".png")
+            image = functions.change_color(image, random_colors)
+            images.append(image)
         if len(chars) >= 2:
             img = get_concat_h(images[0], images[1])
             for im in images[2:]:
@@ -122,20 +123,16 @@ def save_to_db(char_arr, no_chars, r_str, interp_bool, gan_path, gan_output_path
         img.save(DB_PATH)
 
 def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
-    # Clear all files in Hanzi dir
-    files = glob.glob(GAN_DIR+'/hanzi_dir/*')
-    for f in files:
-        os.remove(f)
+    clear_folders()
     subprocess.call(["python", "font2img.py", "--src_font=SIMSUN.ttf", "--dst_font="+FONT_DIR+"/"+font_str, "--charset=CN",\
-                        "--sample_count", str(no_chars), "--sample_dir=hanzi_dir", "--label=0", "--filter=0 ",\
-                            "--shuffle=0"], cwd=GAN_DIR)
+                    "--sample_count", str(no_chars), "--sample_dir=hanzi_dir", "--label=0", "--filter=0 ",\
+                    "--shuffle=0"], cwd=GAN_DIR)
 
     for char in char_arr:
         random_colors = functions.random_color()
         chars, ids = char
         full_char = ""
         images = []
-        #get_concat_h(im1, im1)
         for i in range(len(chars)):
             ch = chars[i]
             char_no = str(ids[i]).zfill(4)
@@ -143,24 +140,15 @@ def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
             image = Image.open(gan_output_path+"0_"+char_no +".jpg")
             # crop second image half
             width, height = image.size 
-            print(image.size)
-            print(width)
             image = image.crop((0, 0, width//2, height))
-            image = image.convert("RGBA")
-            im_data = np.array(image)
-            red, green, blue, alpha = im_data.T
-            black = (red < 60) & (blue < 60) & (green < 60)
-            im_data[..., :-1][black.T] = random_colors
-            image = Image.fromarray(im_data)
+            image = functions.change_color(image, random_colors)
             images.append(image)
-        print(full_char)
         if len(chars) >= 2:
             img = get_concat_h(images[0], images[1])
             for im in images[2:]:
                 img = get_concat_h(img, im)
         else: img = images[0]
         DB_PATH = MEDIA_SRC+"/"+full_char+"_"+DECK_NAME+"_"+FNAME_END
-        print(DB_PATH)
         img.save(DB_PATH)
 
 def clear_folders():
@@ -175,7 +163,7 @@ def clear_folders():
 def randomize_deck():
     char_arr = get_characters(col, DECK, FIELD_NO)
     ucode_arr = chars_to_json(char_arr)
-    r_str = "1,2,3,4,5,6,7,8,9,11,12,13,14,17,18,19,21,22,23,24,25,26,27"#str(random.choice(font_list))+","+str(random.choice(font_list))+","+str(random.choice(font_list))#
+    r_str = "1,2,3,4,6,7,8,9,11,12,13,22,26"
     no_chars = len(ucode_arr)
     print("no_chars: ", no_chars)
     save_to_db(char_arr, no_chars, r_str, GAN_DIR, GAN_OUTPUT_PATH)
@@ -183,41 +171,34 @@ def randomize_deck():
     clear_folders()
 
 def randomize_next_cards(n, interp_bool):
-    while True:
-        cards_sorted = get_cards(col, n)
-        char_arr = get_characters(col, cards_sorted, FIELD_NO)
-        ucode_arr = chars_to_json(char_arr)
-        if interp_bool == 1: r_str = str(random.choice(font_list))+","+str(random.choice(font_list))+","+str(random.choice(font_list))
-        else: r_str = str(random.choice(font_list))
-        print("font id: ", r_str)
-        no_chars = len(ucode_arr)
-        print("no_chars: ", no_chars)
-        save_to_db(char_arr, no_chars, r_str, interp_bool, GAN_DIR, GAN_OUTPUT_PATH)
-
-        clear_folders()
-        
-        if not col.sched.getCard(): break
+    cards_sorted = get_cards(col, n)
+    char_arr = get_characters(col, cards_sorted, FIELD_NO)
+    ucode_arr = chars_to_json(char_arr)
+    if interp_bool == 1: r_str = str(random.choice(font_list))+","+str(random.choice(font_list))+","+str(random.choice(font_list))
+    else: r_str = str(random.choice(font_list))
+    print("font id: ", r_str)
+    no_chars = len(ucode_arr)
+    print("no_chars: ", no_chars)
+    save_to_db(char_arr, no_chars, r_str, interp_bool, GAN_DIR, GAN_OUTPUT_PATH)
+    clear_folders()
 
 def randomize_next_cards_noGAN(n):
-    while True:
-        cards_sorted = get_cards(col, n)
-        char_arr = get_characters(col, cards_sorted, FIELD_NO)
-        ucode_arr = chars_to_json(char_arr)
-        no_chars = len(ucode_arr)
-        print("no_chars: ", no_chars)
-        font_str = str(random.choice(fonts))
-        #input(font_str)
-        save_to_db_noGAN(char_arr, no_chars, font_str, GAN_DIR, GAN_HANZI_PATH)
+    cards_sorted = get_cards(col, n)
+    char_arr = get_characters(col, cards_sorted, FIELD_NO)
+    ucode_arr = chars_to_json(char_arr)
+    no_chars = len(ucode_arr)
+    print("no_chars: ", no_chars)
+    font_str = str(random.choice(fonts))
+    save_to_db_noGAN(char_arr, no_chars, font_str, GAN_DIR, GAN_HANZI_PATH)
 
-        clear_folders()
-        
-        if not col.sched.getCard(): break
+    clear_folders()
 
 if __name__ == "__main__":
-    #main()
-    #randomize_next_cards(10, 1)
-    randomize_next_cards_noGAN(100)
-    #print(get_cards(col))
-    #print(did)
-    #print(col.sched.getCard())
+    flag = True # True: Scheduled cards available; False: No scheduled cards available
+    while True:
+        randomize_next_cards(10, 1)
+        randomize_next_cards_noGAN(10)
+        randomize_next_cards(10, 0)
+    
+        if flag == False: break
    
