@@ -1,52 +1,40 @@
 import sys, os
-from aqt import mw
-from aqt.utils import showInfo
-from aqt.qt import *
+#from aqt import mw
+#from aqt.utils import showInfo
+#from aqt.qt import *
 import random
 import re
 import time
-import functions
 import subprocess
 from shutil import copyfile
 import glob
 import shutil
 import codecs
+import importlib.util
+
+sys.path.append(os.path.abspath(__file__))
+
+print(sys.path)
+#sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+ADDON_HOME = os.path.dirname(os.path.abspath(__file__))
+
+#import PIL
+import importlib.util
+spec = importlib.util.spec_from_file_location("PIL", os.path.join(ADDON_HOME,'packages','PIL37','__init__.py'))
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module 
+spec.loader.exec_module(module)
 from PIL import Image
-import numpy as np
+print("PIL dir: ", Image.__file__)
+#import numpy as np
+from anki.storage import Collection
 
-#sys.path.append("../anki")
-from anki.storage import Collection # OK
-
-User = "Benutzer 1"
-PROFILE_HOME = "/Users/Phillip/AppData/Roaming/Anki2/"+User
-GAN_OUTPUT_PATH = "/Users/Phillip/Google Drive/python/Projects/AnkiAddons/randomFonts/zi2zi/output_dir/"
-GAN_HANZI_PATH = "/Users/Phillip/Google Drive/python/Projects/AnkiAddons/randomFonts/zi2zi/hanzi_dir/"
-DECK_NAME = "HSK1to6+"  #"HSK1to6+" #"HSK1to6::deck""Radicals"
-DECK = "deck:"+DECK_NAME 
-MEDIA_SRC = "/Users/Phillip/AppData/Roaming/Anki2/"+User+"/collection.media"
-MEDIA_SRC = "/Users/Phillip/Downloads/test"
-DIRNAME = os.path.dirname(os.path.abspath(__file__))
-JSON_DIR = os.path.join(DIRNAME, 'zi2zi','charset','cjk.json')
-GAN_DIR = os.path.join(DIRNAME, 'zi2zi')
-FNAME_END = "gan_generated.png"
-FIELD_NO = 0
-FONT_DIR = DIRNAME+"/fonts"
-_, _, fonts = next(os.walk(FONT_DIR ))
-#print(fonts)
+import functions
 
 font_list = [1,2,3,4,5,6,7,8,9,11,12,13,14,17,18,19,21,22,23,24,25,26,27]
 good_fonts = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 22, 26]
-font_list = good_fonts
-#average_fonts = [5, 10, 14, 19, 23, 24, 25, 28]
-#bad_fonts = [15, 16, 17, 18, 20, 27]
 
-template = "<img src='{{Front}}"+"_"+DECK_NAME+"_"+FNAME_END+"'>"
-
-cpath = os.path.join(PROFILE_HOME, "collection.anki2")
-col = Collection(cpath, log=True) # Entry point to the API
-did = col.decks.id(DECK_NAME)
-col.decks.select(did)
-#black = (red == 0) & (blue == 0) & (green == 0)
 
 def get_cards(col, n = 20):
     global flag
@@ -95,10 +83,10 @@ def get_concat_h(im1, im2):
     dst.paste(im2, (im1.width, 0))
     return dst
 
-def save_to_db(char_arr, no_chars, r_str, interp_bool, gan_path, gan_output_path):
+def save_to_db(char_arr, no_chars, r_str, interp_bool):
     # Clear all files in Hanzi dir
     clear_folders()
-    subprocess.call(["python", "-W", "ignore", "run.py", "--font_ids", r_str, \
+    subprocess.call([PYTHON37_PATH, "-W", "ignore", "run.py", "--font_ids", r_str, \
                         "--sample_count", str(no_chars), "--interpolate", str(interp_bool)], cwd=GAN_DIR)
 
     for char in char_arr:
@@ -110,7 +98,7 @@ def save_to_db(char_arr, no_chars, r_str, interp_bool, gan_path, gan_output_path
             ch = chars[i]
             char_no = str(ids[i]).zfill(4)
             full_char += ch
-            image = Image.open(gan_output_path+"inferred_"+char_no +".png")
+            image = Image.open(GAN_OUTPUT_PATH+"/inferred_"+char_no +".png")
             image = functions.change_color(image, random_colors)
             images.append(image)
         if len(chars) >= 2:
@@ -118,15 +106,16 @@ def save_to_db(char_arr, no_chars, r_str, interp_bool, gan_path, gan_output_path
             for im in images[2:]:
                 img = get_concat_h(img, im)
         else: img = images[0]
-        DB_PATH = MEDIA_SRC+"/"+full_char+"_"+DECK_NAME+"_"+FNAME_END
+        DB_PATH = os.path.join(MEDIA_SRC, full_char+"_"+DECK_NAME+"_"+"gan_generated.png")
         print(DB_PATH)
         img.save(DB_PATH)
 
-def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
+def save_to_db_noGAN(char_arr, no_chars, font_str):
     clear_folders()
-    subprocess.call(["python", "font2img.py", "--src_font=SIMSUN.ttf", "--dst_font="+FONT_DIR+"/"+font_str, "--charset=CN",\
+    subp = subprocess.call([PYTHON37_PATH, "font2img.py", "--src_font=SIMSUN.ttf", "--dst_font="+FONT_DIR+"/"+font_str, "--charset=CN",\
                     "--sample_count", str(no_chars), "--sample_dir=hanzi_dir", "--label=0", "--filter=0 ",\
                     "--shuffle=0"], cwd=GAN_DIR)
+    #raise Exception("subprocess...")
 
     for char in char_arr:
         random_colors = functions.random_color()
@@ -137,7 +126,7 @@ def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
             ch = chars[i]
             char_no = str(ids[i]).zfill(4)
             full_char += ch
-            image = Image.open(gan_output_path+"0_"+char_no +".jpg")
+            image = Image.open(os.path.join(GAN_HANZI_PATH,"0_"+char_no +".jpg"))
             # crop second image half
             width, height = image.size 
             image = image.crop((0, 0, width//2, height))
@@ -148,7 +137,7 @@ def save_to_db_noGAN(char_arr, no_chars, font_str, gan_path, gan_output_path):
             for im in images[2:]:
                 img = get_concat_h(img, im)
         else: img = images[0]
-        DB_PATH = MEDIA_SRC+"/"+full_char+"_"+DECK_NAME+"_"+FNAME_END
+        DB_PATH = os.path.join(MEDIA_SRC, full_char+"_"+DECK_NAME+"_"+"gan_generated.png")
         img.save(DB_PATH)
 
 def clear_folders():
@@ -170,35 +159,40 @@ def randomize_deck():
 
     clear_folders()
 
-def randomize_next_cards(n, interp_bool):
+def randomize_next_cards(n, interp_bool, field_no):
     cards_sorted = get_cards(col, n)
-    char_arr = get_characters(col, cards_sorted, FIELD_NO)
+    char_arr = get_characters(col, cards_sorted, field_no)
     ucode_arr = chars_to_json(char_arr)
     if interp_bool == 1: r_str = str(random.choice(font_list))+","+str(random.choice(font_list))+","+str(random.choice(font_list))
     else: r_str = str(random.choice(font_list))
     print("font id: ", r_str)
     no_chars = len(ucode_arr)
     print("no_chars: ", no_chars)
-    save_to_db(char_arr, no_chars, r_str, interp_bool, GAN_DIR, GAN_OUTPUT_PATH)
+    save_to_db(char_arr, no_chars, r_str, interp_bool)
     clear_folders()
 
-def randomize_next_cards_noGAN(n):
+def randomize_next_cards_noGAN(n, field_no):
     cards_sorted = get_cards(col, n)
-    char_arr = get_characters(col, cards_sorted, FIELD_NO)
+    char_arr = get_characters(col, cards_sorted, field_no)
     ucode_arr = chars_to_json(char_arr)
     no_chars = len(ucode_arr)
     print("no_chars: ", no_chars)
     font_str = str(random.choice(fonts))
-    save_to_db_noGAN(char_arr, no_chars, font_str, GAN_DIR, GAN_HANZI_PATH)
+    save_to_db_noGAN(char_arr, no_chars, font_str)
 
     clear_folders()
 
-if __name__ == "__main__":
+def main(collection, field_no, font_list, deck_name, paths):
+    global flag, col, fonts, GAN_DIR, GAN_HANZI_PATH, GAN_OUTPUT_PATH, JSON_DIR, \
+           FONT_DIR, MEDIA_SRC, DECK_NAME, PYTHON37_PATH
+    GAN_DIR, GAN_HANZI_PATH, GAN_OUTPUT_PATH, JSON_DIR, FONT_DIR, MEDIA_SRC, PYTHON37_PATH = paths
+    DECK_NAME = deck_name
+    fonts = font_list
+    col = collection
     flag = True # True: Scheduled cards available; False: No scheduled cards available
     while True:
-        randomize_next_cards(10, 1)
-        randomize_next_cards_noGAN(10)
-        randomize_next_cards(10, 0)
+        #randomize_next_cards(10, 0, field_no)
+        randomize_next_cards_noGAN(1000, field_no)
     
         if flag == False: break
    

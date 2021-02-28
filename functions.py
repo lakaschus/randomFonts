@@ -1,7 +1,18 @@
 import json
 import codecs
 import random
+import os, sys
+
+ADDON_HOME = os.path.dirname(os.path.abspath(__file__))
+PROFILE_HOME = os.path.dirname(os.path.dirname(ADDON_HOME))
+
+import importlib.util
+spec = importlib.util.spec_from_file_location("PIL", os.path.join(ADDON_HOME,'packages','PIL37','__init__.py'))
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module 
+spec.loader.exec_module(module)
 from PIL import Image
+
 import numpy as np
 
 def char_to_unicode(char):

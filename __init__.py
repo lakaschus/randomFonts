@@ -1,17 +1,13 @@
+#!/usr/bin/env python3.7
+
 # Author: Phillip Lakaschus
 
 import sys, os
-from aqt import mw
-from aqt.utils import showInfo
-from aqt.qt import *
-from anki.hooks import addHook
-import json
+import subprocess
+ADDON_HOME = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(ADDON_HOME)
 
-from anki.storage import Collection # OK
+#subprocess.call([os.path.join(ADDON_HOME, 'packages', 'python-3.7.9-h60c2a47_0', 'python.exe')\
+#                , "main.py"], cwd=ADDON_HOME)
 
-with open('config.json', 'r') as json_file:
-    json_data = json.load(json_file)
-
-PROFILE_HOME = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-print(PROFILE_HOME)
-print(json_data["user"])
+import main
