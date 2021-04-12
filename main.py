@@ -32,11 +32,11 @@ non_ai_generated_bool = int(json_data["non_AI_generated"])
 full_deck_bool = int(json_data["full_deck"])
 options = [interpolation_bool, random_color_bool, ai_generated_bool, non_ai_generated_bool, full_deck_bool]
 
-GAN_OUTPUT_PATH = os.path.join(ADDON_HOME,'zi2zi', 'output_dir')
-GAN_HANZI_PATH = os.path.join(ADDON_HOME,'zi2zi', 'hanzi_dir')
+GAN_OUTPUT_PATH = os.path.join(ADDON_HOME,'zi2ziGAN', 'output_dir')
+GAN_HANZI_PATH = os.path.join(ADDON_HOME,'zi2ziGAN', 'hanzi_dir')
 MEDIA_SRC = os.path.join(PROFILE_HOME, user, 'collection.media')
-JSON_DIR = os.path.join(ADDON_HOME, 'zi2zi','charset','cjk.json')
-GAN_DIR = os.path.join(ADDON_HOME, 'zi2zi')
+JSON_DIR = os.path.join(ADDON_HOME, 'zi2ziGAN','charset','cjk.json')
+GAN_DIR = os.path.join(ADDON_HOME, 'zi2ziGAN')
 FNAME_END = "gan_generated.png"
 FONT_DIR = os.path.join(ADDON_HOME, 'fonts')
 _, _, fonts = next(os.walk(FONT_DIR ))
