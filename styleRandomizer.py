@@ -12,22 +12,7 @@ import shutil
 import codecs
 import importlib.util
 
-sys.path.append(os.path.abspath(__file__))
-
-print(sys.path)
-#sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-ADDON_HOME = os.path.dirname(os.path.abspath(__file__))
-
-#import PIL
-import importlib.util
-spec = importlib.util.spec_from_file_location("PIL", os.path.join(ADDON_HOME,'packages','PIL37','__init__.py'))
-module = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = module 
-spec.loader.exec_module(module)
 from PIL import Image
-print("PIL dir: ", Image.__file__)
-#import numpy as np
 from anki.storage import Collection
 
 import functions
@@ -35,6 +20,14 @@ import functions
 font_list = [1,2,3,4,5,6,7,8,9,11,12,13,14,17,18,19,21,22,23,24,25,26,27]
 good_fonts = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 22, 26]
 
+def get_all_cards(col):
+    did = col.decks.id(DECK_NAME)
+    cards = []
+    counter = 0
+    
+    for cid in col.findCards('deck:'+str(DECK_NAME)):
+        cards.append(col.getCard(cid))
+    return cards 
 
 def get_cards(col, n = 20):
     global flag
@@ -43,14 +36,15 @@ def get_cards(col, n = 20):
     
     while True:
         card = col.sched.getCard()
-        if card == None or counter > n: 
+        if card == None:
+            print("No more scheduled cards found!") 
             flag = False
+            break
+        if counter > n:
             break
         cards.append(card)
         counter += 1
-        #cards.append(col.getCard(cid))
-        #print(col.getCard(cid))
-    return cards #sorted(cards, key=lambda k: k.due)
+    return cards 
 
 def get_characters(col, stack, field_no):
     char_ids = [] # format: [([id], [1,2]), (id, 3), (id, 4, 5, 6)] 
@@ -86,9 +80,9 @@ def get_concat_h(im1, im2):
 def save_to_db(char_arr, no_chars, r_str, interp_bool):
     # Clear all files in Hanzi dir
     clear_folders()
-    subprocess.call([PYTHON37_PATH, "-W", "ignore", "run.py", "--font_ids", r_str, \
+    subprocess.call(["python", "-W", "ignore", "run.py", "--font_ids", r_str, \
                         "--sample_count", str(no_chars), "--interpolate", str(interp_bool)], cwd=GAN_DIR)
-
+    
     for char in char_arr:
         random_colors = functions.random_color()
         chars, ids = char
@@ -99,7 +93,8 @@ def save_to_db(char_arr, no_chars, r_str, interp_bool):
             char_no = str(ids[i]).zfill(4)
             full_char += ch
             image = Image.open(GAN_OUTPUT_PATH+"/inferred_"+char_no +".png")
-            image = functions.change_color(image, random_colors)
+            if rand_color_b == 1:
+                image = functions.change_color(image, random_colors)
             images.append(image)
         if len(chars) >= 2:
             img = get_concat_h(images[0], images[1])
@@ -112,7 +107,7 @@ def save_to_db(char_arr, no_chars, r_str, interp_bool):
 
 def save_to_db_noGAN(char_arr, no_chars, font_str):
     clear_folders()
-    subp = subprocess.call([PYTHON37_PATH, "font2img.py", "--src_font=SIMSUN.ttf", "--dst_font="+FONT_DIR+"/"+font_str, "--charset=CN",\
+    subp = subprocess.call(["python", "font2img.py", "--src_font=SIMSUN.ttf", "--dst_font="+FONT_DIR+"/"+font_str, "--charset=CN",\
                     "--sample_count", str(no_chars), "--sample_dir=hanzi_dir", "--label=0", "--filter=0 ",\
                     "--shuffle=0"], cwd=GAN_DIR)
     #raise Exception("subprocess...")
@@ -130,7 +125,8 @@ def save_to_db_noGAN(char_arr, no_chars, font_str):
             # crop second image half
             width, height = image.size 
             image = image.crop((0, 0, width//2, height))
-            image = functions.change_color(image, random_colors)
+            if rand_color_b == 1:
+                image = functions.change_color(image, random_colors)
             images.append(image)
         if len(chars) >= 2:
             img = get_concat_h(images[0], images[1])
@@ -149,13 +145,14 @@ def clear_folders():
     for f in files:
         os.remove(f)
 
-def randomize_deck():
-    char_arr = get_characters(col, DECK, FIELD_NO)
+def randomize_deck_noGAN(field_no):
+    cards_sorted = get_all_cards(col)
+    char_arr = get_characters(col, cards_sorted, field_no)
     ucode_arr = chars_to_json(char_arr)
-    r_str = "1,2,3,4,6,7,8,9,11,12,13,22,26"
     no_chars = len(ucode_arr)
     print("no_chars: ", no_chars)
-    save_to_db(char_arr, no_chars, r_str, GAN_DIR, GAN_OUTPUT_PATH)
+    font_str = str(random.choice(fonts))
+    save_to_db_noGAN(char_arr, no_chars, font_str)
 
     clear_folders()
 
@@ -182,17 +179,27 @@ def randomize_next_cards_noGAN(n, field_no):
 
     clear_folders()
 
-def main(collection, field_no, font_list, deck_name, paths):
+def main(collection, field_no, font_list, deck_name, paths, options):
     global flag, col, fonts, GAN_DIR, GAN_HANZI_PATH, GAN_OUTPUT_PATH, JSON_DIR, \
-           FONT_DIR, MEDIA_SRC, DECK_NAME, PYTHON37_PATH
-    GAN_DIR, GAN_HANZI_PATH, GAN_OUTPUT_PATH, JSON_DIR, FONT_DIR, MEDIA_SRC, PYTHON37_PATH = paths
+           FONT_DIR, MEDIA_SRC, DECK_NAME, rand_color_b
+    GAN_DIR, GAN_HANZI_PATH, GAN_OUTPUT_PATH, JSON_DIR, FONT_DIR, MEDIA_SRC = paths
     DECK_NAME = deck_name
+    print(f"################\nDeck: {DECK_NAME}\n################")
     fonts = font_list
     col = collection
     flag = True # True: Scheduled cards available; False: No scheduled cards available
-    while True:
-        #randomize_next_cards(10, 0, field_no)
-        randomize_next_cards_noGAN(1000, field_no)
-    
-        if flag == False: break
+    n = 5
+    tot_n = 0
+    interp_b, rand_color_b, ai_b, non_ai_b, full_deck_b = options
+    if full_deck_b == 1: 
+        print("Characters for the entire deck are generated! Will take some time...")
+        randomize_deck_noGAN(field_no)
+    while flag:
+        if flag and ai_b == 1:
+            randomize_next_cards(n, interp_b, field_no)
+            tot_n += n
+        if flag and non_ai_b == 1:
+            randomize_next_cards_noGAN(n, field_no)
+            tot_n += n
+    print("total style transfers: ", tot_n)
    
