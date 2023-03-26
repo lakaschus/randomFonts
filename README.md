@@ -1,5 +1,7 @@
 # Anki style transfer for Chinese characters
 
+![Examples for Anki random fonts](randomFonts.png)
+
 ## Overview
 
 This is a personal project of mine and I upload it to github mainly as backup. You are free to use it but it is not user friendly.
